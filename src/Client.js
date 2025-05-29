@@ -93,15 +93,27 @@ class Client extends EventEmitter {
      * Private function
      */
     async inject() {
-        await this.pupPage.waitForFunction('window.Debug?.VERSION != undefined', {timeout: this.options.authTimeoutMs});
+        // 等待页面稳定
+        await this.pupPage.waitForNavigation({ waitUntil: 'networkidle0' }).catch(() => {});
+        
+        try {
+            await this.pupPage.waitForFunction('window.Debug?.VERSION != undefined', {timeout: this.options.authTimeoutMs});
 
-        const version = await this.getWWebVersion();
-        const isCometOrAbove = parseInt(version.split('.')?.[1]) >= 3000;
+            const version = await this.getWWebVersion();
+            const isCometOrAbove = parseInt(version.split('.')?.[1]) >= 3000;
 
-        if (isCometOrAbove) {
-            await this.pupPage.evaluate(ExposeAuthStore);
-        } else {
-            await this.pupPage.evaluate(ExposeLegacyAuthStore, moduleRaid.toString());
+            if (isCometOrAbove) {
+                await this.pupPage.evaluate(ExposeAuthStore);
+            } else {
+                await this.pupPage.evaluate(ExposeLegacyAuthStore, moduleRaid.toString());
+            }
+        } catch (error) {
+            if (error.message.includes('Execution context was destroyed')) {
+                // 等待一段时间后重试
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                return this.inject(); // 递归重试
+            }
+            throw error; // 重新抛出其他错误
         }
 
         const needAuthentication = await this.pupPage.evaluate(async () => {
@@ -1758,3 +1770,4 @@ class Client extends EventEmitter {
 }
 
 module.exports = Client;
+
