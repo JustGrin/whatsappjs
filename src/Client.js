@@ -779,8 +779,8 @@ class Client extends EventEmitter {
      * Closes the client
      */
     async destroy() {
-        await this.pupBrowser?.close();
-        await this.authStrategy?.destroy();
+        await this.pupBrowser.close();
+        await this.authStrategy.destroy();
     }
 
     /**
@@ -985,7 +985,7 @@ class Client extends EventEmitter {
      */
     async getChatById(chatId) {
         let chat = await this.pupPage.evaluate(async chatId => {
-            return await window.WWebJS?.getChat(chatId);
+            return await window.WWebJS.getChat(chatId);
         }, chatId);
 
         return ChatFactory.create(this, chat);
@@ -1745,7 +1745,7 @@ class Client extends EventEmitter {
      */
     async syncHistory(chatId) {
         return await this.pupPage.evaluate(async (chatId) => {
-            const chat = await window.WWebJS?.getChat(chatId);
+            const chat = await window.WWebJS.getChat(chatId);
             if (chat.endOfHistoryTransferType === 0) {
                 await window.Store.HistorySync.sendPeerDataOperationRequest(3, {
                     chatId: chat.id
