@@ -88,7 +88,7 @@ declare namespace WAWebJS {
         getChannelByInviteCode(inviteCode: string): Promise<Channel>
 
         /** Get all current chat instances */
-        getChats(): Promise<Chat[]>
+        getChats(params: any): Promise<Chat[]>
 
         /** Gets all cached {@link Channel} instances */
         getChannels(): Promise<Channel[]>
