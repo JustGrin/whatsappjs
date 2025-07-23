@@ -1026,12 +1026,15 @@ class Client extends EventEmitter {
 
     /**
      * Get all current chat instances
+     * @param {Object} searchOptions Options for searching chats. Right now only since is supported.
+     * @param {Number} [searchOptions.skip] Only chats whose internal timestamp `chat.t` is **greater than or equal** to this value will be returned.
+     * @param {Number} [searchOptions.limit] Only chats whose internal timestamp `chat.t` is **greater than or equal** to this value will be returned.
      * @returns {Promise<Array<Chat>>}
      */
-    async getChats() {
-        const chats = await this.pupPage.evaluate(async () => {
-            return await window.WWebJS.getChats();
-        });
+    async getChats(searchOptions) {
+        const chats = await this.pupPage.evaluate(async (options) => {
+            return await window.WWebJS.getChats({...options});
+        }, searchOptions);
 
         return chats.map(chat => ChatFactory.create(this, chat));
     }
