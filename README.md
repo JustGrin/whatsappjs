@@ -1,7 +1,7 @@
 <div align="center">
     <br />
     <p>
-        <a href="https://wwebjs.dev"><img src="https://github.com/wwebjs/logos/blob/main/4_Full%20Logo%20Lockup_Small/small_banner_blue.png?raw=true" title="whatsapp-web.js" alt="WWebJS Website" width="500" /></a>
+        <a href="https://wwebjs.dev"><img src="https://github.com/wwebjs/assets/blob/main/Collection/GitHub/wwebjs.png?raw=true" title="whatsapp-web.js" alt="WWebJS Website" width="500" /></a>
     </p>
     <br />
     <p>
@@ -14,57 +14,28 @@
 </div>
 
 ## About
-**A WhatsApp API client that connects through the WhatsApp Web browser app**
+**A WhatsApp API client that operates via the WhatsApp Web browser.**
 
-The library works by launching the WhatsApp Web browser application and managing it using Puppeteer to create an instance of WhatsApp Web, thereby mitigating the risk of being blocked. The WhatsApp API client connects through the WhatsApp Web browser app, accessing its internal functions. This grants you access to nearly all the features available on WhatsApp Web, enabling dynamic handling similar to any other Node.js application.
+The library launches the WhatsApp Web browser app via Puppeteer, accessing its internal functions and creating a managed instance to reduce the risk of being blocked. This gives the API client nearly all WhatsApp Web features for dynamic use in a Node.js application.
 
 > [!IMPORTANT]
 > **It is not guaranteed you will not be blocked by using this method. WhatsApp does not allow bots or unofficial clients on their platform, so this shouldn't be considered totally safe.**
 
 ## Links
 
-* [Website][website]
-* [Guide][guide] ([source][guide-source]) _(work in progress)_
-* [Documentation][documentation] ([source][documentation-source])
-* [WWebJS Discord][discord]
 * [GitHub][gitHub]
+* [Guide][guide] ([source][guide-source])
+* [Documentation][documentation] ([source][documentation-source])
+* [Discord Server][discord]
 * [npm][npm]
 
 ## Installation
 
-The module is now available on npm! `npm i whatsapp-web.js`
+The module is available on [npm][npm] via `npm i whatsapp-web.js`!
 
 > [!NOTE]
-> **Node ``v18+`` is required.**
-
-## QUICK STEPS TO UPGRADE NODE
-
-### Windows
-
-#### Manual
-Just get the latest LTS from the [official node website][nodejs].
-
-#### npm
-```powershell
-sudo npm install -g n
-sudo n stable
-```
-
-#### Choco
-```powershell
-choco install nodejs-lts
-```
-
-#### Winget
-```powershell
-winget install OpenJS.NodeJS.LTS
-```
-
-### Ubuntu / Debian
-```bash
-curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - &&\
-sudo apt-get install -y nodejs
-```
+> **Node ``v18`` or higher, is required.**  
+> See the [Guide][guide] for quick upgrade instructions.
 
 ## Example usage
 
@@ -165,7 +136,6 @@ See the License for the specific language governing permissions and
 limitations under the License.  
 
 
-[website]: https://wwebjs.dev
 [guide]: https://guide.wwebjs.dev/guide
 [guide-source]: https://github.com/wwebjs/wwebjs.dev/tree/main
 [documentation]: https://docs.wwebjs.dev/
@@ -183,70 +153,3 @@ limitations under the License.
 [digitalocean]: https://m.do.co/c/73f906a36ed4
 [contributing]: https://github.com/pedroslopez/whatsapp-web.js/blob/main/CODE_OF_CONDUCT.md
 [whatsapp]: https://whatsapp.com
-
-## 更新日志
-
-###  2025-7-23
-
-client.getChats 添加参数,让getChats接口可以分批请求。 修改whatsappjs库
-
-1. `whatsappjs\src\Client.js`
-```ts
-  /**
-     * Get all current chat instances
-     * @returns {Promise<Array<Chat>>}
-     */
-    async getChats() {
-        const chats = await this.pupPage.evaluate(async () => {
-            return await window.WWebJS.getChats();
-        });
-
-        return chats.map(chat => ChatFactory.create(this, chat));
-    }
-```
-改为
-
-```ts
-    /**
-     * Get all current chat instances
-     * @param {Object} searchOptions Options for searching chats. Right now only since is supported.
-     * @param {Number} [searchOptions.skip] Only chats whose internal timestamp `chat.t` is **greater than or equal** to this value will be returned.
-     * @param {Number} [searchOptions.limit] Only chats whose internal timestamp `chat.t` is **greater than or equal** to this value will be returned.
-     * @returns {Promise<Array<Chat>>}
-     */
-    async getChats(searchOptions) {
-        const chats = await this.pupPage.evaluate(async (options) => {
-            return await window.WWebJS.getChats({...options});
-        }, searchOptions);
-
-        return chats.map(chat => ChatFactory.create(this, chat));
-    }
-
-
-```
-
-2. `whatsappjs\src\util\Injected\Utils.js`
-
-```ts
-    window.WWebJS.getChats = async () => {
-        const chats = window.Store.Chat.getModelsArray();
-        const chatPromises = chats.map(chat => window.WWebJS.getChatModel(chat));
-        return await Promise.all(chatPromises);
-    };
-```
-改为
-```ts
-    window.WWebJS.getChats = async (options = {}) => {
-        const { skip = 0, limit = 0 } = options;
-
-        const allChats = window.Store.Chat.getModelsArray(); 
-
-        const filteredChats = limit
-            ? allChats.slice(skip, skip + limit)
-            : allChats;
-
-        return await Promise.all(
-            filteredChats.map((chat) => window.WWebJS.getChatModel(chat))
-        );
-    };
-```

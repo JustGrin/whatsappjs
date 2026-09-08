@@ -88,7 +88,6 @@ exports.ExposeStore = () => {
     window.Store.WidToJid = window.require('WAWebWidToJid');
     window.Store.JidToWid = window.require('WAWebJidToWid');
     window.Store.getMsgInfo = window.require('WAWebApiMessageInfoStore').queryMsgInfo;
-    window.Store.pinUnpinMsg = window.require('WAWebSendPinMessageAction').sendPinInChatMsg;
     window.Store.QueryExist = window.require('WAWebQueryExistsJob').queryWidExists;
     window.Store.ReplyUtils = window.require('WAWebMsgReply');
     window.Store.BotSecret = window.require('WAWebBotMessageSecret');
@@ -97,8 +96,14 @@ exports.ExposeStore = () => {
     window.Store.DeviceList = window.require('WAWebApiDeviceList');
     window.Store.HistorySync = window.require('WAWebSendNonMessageDataRequest');
     window.Store.AddonReactionTable = window.require('WAWebAddonReactionTableMode').reactionTableMode;
+    window.Store.AddonPollVoteTable = window.require('WAWebAddonPollVoteTableMode').pollVoteTableMode;
     window.Store.ChatGetters = window.require('WAWebChatGetters');
     window.Store.UploadUtils = window.require('WAWebUploadManager');
+    window.Store.WAWebStreamModel = window.require('WAWebStreamModel');
+    window.Store.FindOrCreateChat = window.require('WAWebFindChatAction');
+    window.Store.CustomerNoteUtils = window.require('WAWebNoteAction');
+    window.Store.BusinessGatingUtils = window.require('WAWebBizGatingUtils');
+    window.Store.PollsVotesSchema = require('WAWebPollsVotesSchema');
     
     window.Store.Settings = {
         ...window.require('WAWebUserPrefsGeneral'),
@@ -110,7 +115,16 @@ exports.ExposeStore = () => {
         ...window.require('WAPhoneFindCC')
     };
     window.Store.ForwardUtils = {
-        ...window.require('WAWebForwardMessagesToChat')
+        ...window.require('WAWebChatForwardMessage')
+    };
+    window.Store.PinnedMsgUtils = {
+        ...window.require('WAWebPinInChatSchema'),
+        ...window.require('WAWebSendPinMessageAction')
+    };
+    window.Store.ScheduledEventMsgUtils = {
+        ...window.require('WAWebGenerateEventCallLink'),
+        ...window.require('WAWebSendEventEditMsgAction'),
+        ...window.require('WAWebSendEventResponseMsgAction')
     };
     window.Store.VCard = {
         ...window.require('WAWebFrontendVcardUtils'),
@@ -202,14 +216,35 @@ exports.ExposeStore = () => {
      * @param {Function} callback Modified function
      */
     window.injectToFunction = (target, callback) => {
-        const module = window.require(target.module);
-        const originalFunction = module[target.function];
-        const modifiedFunction = (...args) => callback(originalFunction, ...args);
-        module[target.function] = modifiedFunction;
+        try {
+            let module = window.require(target.module);
+            if (!module) return; 
+
+            const path = target.function.split('.');
+            const funcName = path.pop();
+
+            for (const key of path) {
+                if (!module[key]) return;
+                module = module[key];
+            }
+
+            const originalFunction = module[funcName];
+            if (typeof originalFunction !== 'function') return;
+
+            module[funcName] = (...args) => {
+                try {
+                    return callback(originalFunction, ...args);
+                } catch {
+                    return originalFunction(...args);
+                }
+            };
+
+        } catch {
+            return;
+        }
     };
 
     window.injectToFunction({ module: 'WAWebBackendJobsCommon', function: 'mediaTypeFromProtobuf' }, (func, ...args) => { const [proto] = args; return proto.locationMessage ? null : func(...args); });
 
     window.injectToFunction({ module: 'WAWebE2EProtoUtils', function: 'typeAttributeFromProtobuf' }, (func, ...args) => { const [proto] = args; return proto.locationMessage || proto.groupInviteMessage ? 'text' : func(...args); });
-
 };
